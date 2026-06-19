@@ -3,21 +3,59 @@ mod ui;
 mod event;
 mod api;
 
+use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::{DefaultTerminal, Frame};
 use ratatui::layout::{Alignment, Constraint, Direction, Layout};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use crate::app::App;
+use crate::app::{App, InputField};
+use ratatui::style::{Color, Style};
 
-fn app(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
-    let mut app = App::new();
+fn main() -> color_eyre::Result<()> {
+    let mut application = App::new();
+    color_eyre::install()?;
+    ratatui::run(|terminal| { app(terminal, &mut application) })?;
+    Ok(())
+}
+
+fn app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
     loop {
         terminal.draw(|frame| render(frame, &app))?;
 
         let event = crossterm::event::read()?;
 
         if let crossterm::event::Event::Key(key_event) = event {
-            if key_event.code == crossterm::event::KeyCode::Char('q') {
-                break Ok(())
+            if key_event.kind == KeyEventKind::Press {
+                match key_event.code {
+                    KeyCode::Esc =>  {
+                        break Ok(())
+                    }
+                    KeyCode::Tab => {
+                        app.active_field = match app.active_field {
+                            InputField::Username => InputField::Masterkey,
+                            InputField::Masterkey => InputField::Username,
+                        }
+                    }
+                    KeyCode::Backspace => {
+                        match app.active_field {
+                            InputField::Username => { app.username_input.pop(); }
+                            InputField::Masterkey => { app.masterkey_input.pop(); }
+                        }
+                    }
+                    KeyCode::Char(c) => {
+                        match app.active_field {
+                            InputField::Username => { app.username_input.push(c); }
+                            InputField::Masterkey => { app.masterkey_input.push(c); }
+                        }
+                    }
+                    KeyCode::Enter => {
+                        // api logic
+
+                        app.username_input.clear();
+                        app.masterkey_input.clear();
+                        app.active_field = InputField::Username;
+                    }
+                    _ => {}
+                }
             }
         }
     }
@@ -73,10 +111,17 @@ fn render(frame: &mut Frame, app: &App) {
         ])
         .split(inner_area);
 
+    let username_style = if app.active_field == InputField::Username {
+        Style::default().fg(Color::Yellow)
+    } else {
+        Style::default().fg(Color::Gray)
+    };
+
     let username_block = Block::default()
         .borders(Borders::ALL)
         .title(" Login ")
-        .title_alignment(Alignment::Center);
+        .title_alignment(Alignment::Center)
+        .border_style(username_style);
 
     let username_paragraph = Paragraph::new(app.username_input.as_str())
         .block(username_block);
@@ -86,10 +131,17 @@ fn render(frame: &mut Frame, app: &App) {
         input_chunks[1]
     );
 
+    let password_style = if app.active_field == InputField::Masterkey {
+        Style::default().fg(Color::Yellow)
+    } else {
+        Style::default().fg(Color::Gray)
+    };
+
     let password_block = Block::default()
         .borders(Borders::ALL)
         .title(" Password ")
-        .title_alignment(Alignment::Center);
+        .title_alignment(Alignment::Center)
+        .border_style(password_style);
 
     let password_paragraph = Paragraph::new(app.masterkey_input.as_str())
         .block(password_block);
@@ -100,14 +152,8 @@ fn render(frame: &mut Frame, app: &App) {
     );
 
     frame.render_widget(
-        Paragraph::new("q: quit")
+        Paragraph::new(" Esc: quit | Tab: switch field ")
             .block(Block::new().borders(Borders::ALL)),
         layout[1]
     );
-}
-
-fn main() -> color_eyre::Result<()> {
-    color_eyre::install()?;
-    ratatui::run(app)?;
-    Ok(())
 }

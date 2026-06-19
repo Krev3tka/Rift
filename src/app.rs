@@ -1,7 +1,14 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InputField {
+    Username,
+    Masterkey
+}
+
 pub struct App {
     pub config: Config,
     pub username_input: String,
     pub masterkey_input: String,
+    pub active_field: InputField
 }
 
 impl App {
@@ -10,6 +17,7 @@ impl App {
             config: Config::default(),
             username_input: String::new(),
             masterkey_input: String::new(),
+            active_field: InputField::Username,
         }
     }
 }
@@ -27,3 +35,4 @@ impl Default for Config {
         }
     }
 }
+
