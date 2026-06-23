@@ -29,7 +29,7 @@ fn app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
                     KeyCode::Esc =>  {
                         break Ok(())
                     }
-                    KeyCode::Tab => {
+                    KeyCode::Tab | KeyCode::Up | KeyCode::Down => {
                         app.active_field = match app.active_field {
                             InputField::Username => InputField::Masterkey,
                             InputField::Masterkey => InputField::Username,
@@ -44,7 +44,7 @@ fn app(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
                     KeyCode::Char(c) => {
                         match app.active_field {
                             InputField::Username => { app.username_input.push(c); }
-                            InputField::Masterkey => { app.masterkey_input.push(c); }
+                            InputField::Masterkey => { app.masterkey_input.push('*'); }
                         }
                     }
                     KeyCode::Enter => {
@@ -152,7 +152,7 @@ fn render(frame: &mut Frame, app: &App) {
     );
 
     frame.render_widget(
-        Paragraph::new(" Esc: quit | Tab: switch field ")
+        Paragraph::new(" Esc: quit | Tab or arrow up/down: switch field ")
             .block(Block::new().borders(Borders::ALL)),
         layout[1]
     );
